@@ -356,7 +356,26 @@ if g:go_highlight_build_constraints != 0
       \ contains=@goCommentGroup,@Spell
     hi def link goPackageComment    Comment
 endif
+" working version with match that doesn't highlight as a comment
+"syn match goExport "//export \w\+\nfunc"hs=s+2,he=s+8,me=e-4 "ms=s+1 ,hs=s+2 ,me=s+8,he=s+8
+"hi def link goExport PreProc
+" export directives must be directly above a func declaration
+" this won't highlight "export" unless that's the case
+" the start pattern contains the entire pattern so that putting anything between the
+" "export" and the "func" will cause the region not to match
+" syn keyword goExport contained export
+" syn match goExportedFunc contained /\w\+/
+" syn region goExportComment start="//export \w\+\nfunc"rs=s+2 end="\nfunc"he=s-1,me=s-1,re=s-1 contains=goExport,goExportedFunc
+" hi def link goExport PreProc
+" hi def link goExportComment Comment
+" hi def link goExportedFunc Function
 
+"syn keyword goExport contained export
+"syn region goExportBounds start=/\/\/export/ms=e+1,hs=e+1,rs=s+2 end="\nfunc"me=s-1,he=s-1,re=s-1 contains=goExport keepend
+"syn region goExportBounds start=/\/\/export[^\n]*/hs=s+2,ms=s+2,rs=s+2 end="\nfunc"me=s-1,he=s-1,re=s-1 contains=goExport
+"syn region goExportBounds start=/\/\/export[^\n]*/ end="\nfunc"me=s-1,he=s-1,re=s-1 contains=goExport
+"hi def link     goExport            Type
+"hi def link     goExportBounds      Comment
 
 " Search backwards for a global declaration to start processing the syntax.
 "syn sync match goSync grouphere NONE /^\(const\|var\|type\|func\)\>/
