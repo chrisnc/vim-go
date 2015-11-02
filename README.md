@@ -184,6 +184,7 @@ let g:go_highlight_structs = 1
 let g:go_highlight_interfaces = 1
 let g:go_highlight_operators = 1
 let g:go_highlight_build_constraints = 1
+let g:go_highlight_cgo = 1
 ```
 
 Enable goimports to automatically insert import paths instead of gofmt:

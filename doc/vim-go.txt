@@ -1113,6 +1113,12 @@ Highlights build constraints. By default it's disabled. >
 
 	let g:go_highlight_build_constraints = 0
 <
+                                        *'g:go_highlight_cgo'*
+
+Highlights C source and cgo directives. By default it's disabled. >
+
+	let g:go_highlight_cgo = 0
+<
                                         *'g:go_highlight_string_spellcheck*
 
 Use this option to highlight spelling errors in strings when |spell| is
