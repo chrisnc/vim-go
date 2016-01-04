@@ -83,15 +83,15 @@ endfunction
 " simplify the following functions
 
 function! go#util#EchoSuccess(msg)
-    redraws! | echon "vim-go: " | echohl Function | echon a:msg | echohl None
+    redraws! | echon "vim-go: " | echohl MoreMsg | echon a:msg | echohl None
+endfunction
+
+function! go#util#EchoFailure(msg)
+    redraws! | echon "vim-go: " | echohl WarningMsg | echon a:msg | echohl None
 endfunction
 
 function! go#util#EchoError(msg)
     redraws! | echon "vim-go: " | echohl ErrorMsg | echon a:msg | echohl None
-endfunction
-
-function! go#util#EchoWarning(msg)
-    redraws! | echon "vim-go: " | echohl WarningMsg | echon a:msg | echohl None
 endfunction
 
 function! go#util#EchoProgress(msg)

@@ -8,7 +8,7 @@ function! go#list#Window(...)
     " location list increases/decreases, cwindow will not resize when a new
     " updated height is passed. lopen in the other hand resizes the screen.
     if !a:0 || a:1 == 0
-        lclose
+        cclose
         return
     endif
 
@@ -22,50 +22,50 @@ function! go#list#Window(...)
         endif
     endif
 
-    exe 'lopen '. height
+    exe 'copen ' . height
 endfunction
 
 
 " Get returns the current list of items from the location list
 function! go#list#Get()
-  return getloclist(0)
+    return getqflist()
 endfunction
 
 " Populate populate the location list with the given items
 function! go#list#Populate(items)
-	call setloclist(0, a:items, 'r')
+    call setqflist(a:items)
 endfunction
 
 function! go#list#PopulateWin(winnr, items)
-	call setloclist(a:winnr, a:items, 'r')
+    call setqflist(a:items)
 endfunction
 
 " Parse parses the given items based on the specified errorformat nad
 " populates the location list.
 function! go#list#ParseFormat(errformat, items)
-  " backup users errorformat, will be restored once we are finished
-  let old_errorformat = &errorformat
+    " backup users errorformat, will be restored once we are finished
+    let old_errorformat = &errorformat
 
-	" parse and populate the location list
-  let &errorformat = a:errformat
-	lgetexpr a:items
+    " parse and populate the location list
+    let &errorformat = a:errformat
+    cgetexpr a:items
 
-	"restore back
-  let &errorformat = old_errorformat
+    "restore back
+    let &errorformat = old_errorformat
 endfunction
 
 " Parse parses the given items based on the global errorformat nad
 " populates the location list.
 function! go#list#Parse(items)
-	lgetexpr a:items
+    cgetexpr a:items
 endfunction
 
 " JumpToFirst jumps to the first item in the location list
 function! go#list#JumpToFirst()
-  ll 1 
+    cc
 endfunction
 
 " Clean cleans the location list
 function! go#list#Clean()
-	lex []
+    cex []
 endfunction

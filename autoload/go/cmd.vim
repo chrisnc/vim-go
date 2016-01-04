@@ -14,6 +14,7 @@ endfunction
 " default it tries to call simply 'go build', but it first tries to get all
 " dependent files for the current folder and passes it to go build.
 function! go#cmd#Build(bang, ...)
+
     " expand all wildcards(i.e: '%' to the current file name)
     let goargs = map(copy(a:000), "expand(v:val)")
 
@@ -23,7 +24,9 @@ function! go#cmd#Build(bang, ...)
     " create our command arguments. go build discards any results when it
     " compiles multiple packages. So we pass the `errors` package just as an
     " placeholder with the current folder (indicated with '.')
-    let args = ["build"]  + goargs + [".", "errors"]
+    let args = ["build"] + goargs + [".", "errors"]
+
+    call go#util#EchoProgress("building...")
 
     " if we have nvim, call it asynchronously and return early ;)
     if has('nvim')
@@ -31,41 +34,25 @@ function! go#cmd#Build(bang, ...)
         return
     endif
 
-    let old_gopath = $GOPATH
-    let $GOPATH = go#path#Detect()
-    let default_makeprg = &makeprg
-    let &makeprg = "go " . join(args, ' ')
-
-    " execute make inside the source folder so we can parse the errors
-    " correctly
-    let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
-    let dir = getcwd()
-    try
-        execute cd . fnameescape(expand("%:p:h"))
-        if g:go_dispatch_enabled && exists(':Make') == 2
-            call go#util#EchoProgress("building dispatched ...")
-            silent! exe 'Make'
-        else
-            silent! exe 'lmake!'
-        endif
-        redraw!
-    finally
-        execute cd . fnameescape(dir)
-    endtry
-
-    let errors = go#list#Get()
-    call go#list#Window(len(errors))
-
-    if !empty(errors)
-        if !a:bang
+    let command = "go " . go#util#Shelljoin(args)
+    call go#cmd#autowrite()
+    let out = go#tool#ExecuteInDir(command)
+    redraw
+    if v:shell_error
+        let errors = go#tool#ParseErrors(split(out, '\n'))
+        call go#list#Populate(errors)
+        call go#list#Window(len(errors))
+        if !empty(errors) && !a:bang
             call go#list#JumpToFirst()
         endif
-    else
-        call go#util#EchoSuccess("[build] SUCCESS")
+        call go#util#EchoFailure("[build] FAILED")
+        return
     endif
 
-    let &makeprg = default_makeprg
-    let $GOPATH = old_gopath
+    call go#list#Clean()
+    call go#list#Window()
+    call go#util#EchoSuccess("[build] SUCCESS")
+
 endfunction
 
 
@@ -89,11 +76,11 @@ function! go#cmd#Run(bang, ...)
     let $GOPATH = go#path#Detect()
 
     if go#util#IsWin()
-        exec '!go run ' . go#util#Shelljoin(go#tool#Files())
+        exec "!go run " . go#util#Shelljoin(go#tool#Files())
         if v:shell_error
-            redraws! | echon "vim-go: [run] " | echohl ErrorMsg | echon "FAILED"| echohl None
+            call go#util#EchoFailure("[run] FAILED")
         else
-            redraws! | echon "vim-go: [run] " | echohl Function | echon "SUCCESS"| echohl None
+            call go#util#EchoSuccess("[run] SUCCESS")
         endif
 
         let $GOPATH = old_gopath
@@ -103,7 +90,7 @@ function! go#cmd#Run(bang, ...)
     " :make expands '%' and '#' wildcards, so they must also be escaped
     let default_makeprg = &makeprg
     if a:0 == 0
-        let &makeprg = 'go run ' . go#util#Shelljoin(go#tool#Files(), 1)
+        let &makeprg = "go run " . go#util#Shelljoin(go#tool#Files(), 1)
     else
         let &makeprg = "go run " . go#util#Shelljoin(map(copy(a:000), "expand(v:val)"), 1)
     endif
@@ -119,8 +106,13 @@ function! go#cmd#Run(bang, ...)
 
     call go#list#Populate(errors)
     call go#list#Window(len(errors))
-    if !empty(errors) && !a:bang
-        call go#list#JumpToFirst()
+    if !empty(errors)
+        if !a:bang
+            call go#list#JumpToFirst()
+        endif
+        call go#util#EchoFailure("[run] FAILED")
+    else
+        call go#util#EchoSuccess("[run] SUCCESS")
     endif
 
     let $GOPATH = old_gopath
@@ -165,6 +157,7 @@ function! go#cmd#Install(bang, ...)
     endif
 
     let &makeprg = default_makeprg
+
 endfunction
 
 " Test runs `go test` in the current directory. If compile is true, it'll
@@ -191,6 +184,12 @@ function! go#cmd#Test(bang, compile, ...)
         call add(args, printf("-timeout=%s", timeout))
     endif
 
+    if a:compile
+        call go#util#EchoProgress("compiling tests...")
+    else
+        call go#util#EchoProgress("testing...")
+    endif
+
     if has('nvim')
         if get(g:, 'go_term_enabled', 0)
             call go#term#new(a:bang, ["go"] + args)
@@ -198,12 +197,6 @@ function! go#cmd#Test(bang, compile, ...)
             call go#jobcontrol#Spawn(a:bang, "test", args)
         endif
         return
-    endif
-
-    if a:compile
-        echon "vim-go: " | echohl Identifier | echon "compiling tests ..." | echohl None
-    else
-        echon "vim-go: " | echohl Identifier | echon "testing ..." | echohl None
     endif
 
     call go#cmd#autowrite()
@@ -232,15 +225,15 @@ function! go#cmd#Test(bang, compile, ...)
             " failed to parse errors, output the original content
             call go#util#EchoError(out)
         endif
-        echon "vim-go: " | echohl ErrorMsg | echon "[test] FAIL" | echohl None
+        call go#util#EchoFailure("[test] FAILED")
     else
         call go#list#Clean()
         call go#list#Window()
 
         if a:compile
-            echon "vim-go: " | echohl Function | echon "[test] SUCCESS" | echohl None
+            call go#util#EchoSuccess("[test] SUCCESS (compile-only)")
         else
-            echon "vim-go: " | echohl Function | echon "[test] PASS" | echohl None
+            call go#util#EchoSuccess("[test] PASS")
         endif
     endif
 endfunction
@@ -291,7 +284,7 @@ function! go#cmd#Coverage(bang, ...)
             call go#list#JumpToFirst()
         endif
     else
-        " clear previous location list 
+        " clear previous location list
         call go#list#Clean()
         call go#list#Window()
 
@@ -318,7 +311,7 @@ function! go#cmd#Generate(bang, ...)
         let &makeprg = "go generate " . goargs . ' ' . gofiles
     endif
 
-    echon "vim-go: " | echohl Identifier | echon "generating ..."| echohl None
+    call go#util#EchoProgress("generating...")
     if g:go_dispatch_enabled && exists(':Make') == 2
         silent! exe 'Make'
     else
@@ -328,12 +321,12 @@ function! go#cmd#Generate(bang, ...)
 
     let errors = go#list#Get()
     call go#list#Window(len(errors))
-    if !empty(errors) 
+    if !empty(errors)
         if !a:bang
             call go#list#JumpToFirst()
         endif
     else
-        redraws! | echon "vim-go: " | echohl Function | echon "[generate] SUCCESS"| echohl None
+        call go#util#EchoSuccess("[generate] SUCCESS")
     endif
 
     let &makeprg = default_makeprg

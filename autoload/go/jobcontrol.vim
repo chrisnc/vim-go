@@ -41,9 +41,9 @@ endfunction
 " GOPATH when g:go_autodetect_gopath is enabled. The job is started inside the
 " current files folder.
 function! s:spawn(bang, desc, args)
-  let job = { 
-        \ 'desc': a:desc, 
-        \ 'bang': a:bang, 
+  let job = {
+        \ 'desc': a:desc,
+        \ 'bang': a:bang,
         \ 'winnr': winnr(),
         \ 'importpath': go#package#ImportPath(expand('%:p:h')),
         \ 'state': "RUNNING",
@@ -98,7 +98,12 @@ function! s:on_exit(job_id, exit_status)
   if a:exit_status == 0
     call go#list#Clean()
     call go#list#Window()
-
+    if self.desc == "test"
+      let msg = "PASS"
+    else
+      let msg = "SUCCESS"
+    end
+    call go#util#EchoSuccess("[" . self.desc . "] " . msg)
     let self.state = "SUCCESS"
     return
   endif
@@ -127,6 +132,7 @@ function! s:on_exit(job_id, exit_status)
     call go#list#Window(len(errors))
     if !empty(errors) && !self.bang
       call go#list#JumpToFirst()
+      call go#util#EchoFailure("[". self.desc ."] FAILED")
     endif
   endif
 endfunction
