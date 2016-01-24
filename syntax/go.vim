@@ -94,12 +94,16 @@ endif
 syn case match
 
 syn keyword     goDirective         package import
-syn keyword     goDeclaration       var const type
-syn keyword     goDeclType          struct interface
+hi def link     goDirective         PreProc
 
-hi def link     goDirective         Statement
-hi def link     goDeclaration       Keyword
-hi def link     goDeclType          Keyword
+syn keyword     goStorageClass      var const
+hi def link     goStorageClass      StorageClass
+
+syn keyword     goTypeDecl          type
+hi def link     goTypeDecl          Typedef
+
+syn keyword     goStructure         struct interface
+hi def link     goStructure         Structure
 
 " Keywords within functions
 syn keyword     goStatement         defer go goto return break continue fallthrough
@@ -127,7 +131,8 @@ hi def link     goComplexes         Type
 
 " Treat func specially: it's a declaration at the start of a line, but a type
 " elsewhere. Order matters here.
-syn match       goDeclaration       /\<func\>/
+syn match       goFuncDecl          /\<func\>/
+hi def link     goFuncDecl          Keyword
 
 
 " Predefined functions and values
@@ -297,8 +302,8 @@ hi def link     goOperator          Operator
 
 " Functions;
 if g:go_highlight_functions != 0
-  syn match goFunction              /\(func\s\+\)\@<=\w\+\((\)\@=/
-  syn match goFunction              /\()\s\+\)\@<=\w\+\((\)\@=/
+  syn match goFunction              /\(^func\s\+\)\@<=\w\+\((\)\@=/
+  syn match goFunction              /\(^func\s\+(\w\+\s\+\*\?\w\+)\s\+\)\@<=\w\+\((\)\@=/
 endif
 hi def link     goFunction          Function
 
@@ -306,12 +311,12 @@ hi def link     goFunction          Function
 if g:go_highlight_methods != 0
   syn match goMethod                /\(\.\)\@<=\w\+\((\)\@=/
 endif
-hi def link     goMethod            Type
+hi def link     goMethod            Function
 
 " Structs;
 if g:go_highlight_structs != 0
-  syn match goStruct                /\(.\)\@<=\w\+\({\)\@=/
-  syn match goStructDef             /\(type\s\+\)\@<=\w\+\(\s\+struct\s\+{\)\@=/
+  " syn match goStruct                /\(.\)\@<=\w\+\({\)\@=/
+  syn match goStructDef             /\(type\s\+\)\@<=\w\+\(\s\+struct\s*{\)\@=/
 endif
 hi def link     goStruct            Function
 hi def link     goStructDef         Function
